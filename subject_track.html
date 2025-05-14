@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Subject Result Tracker</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to right, #c9d6ff, #e2e2e2);
+      color: #2c3e50;
+      padding: 20px;
+    }
+
+    h2, h3 {
+      color: #34495e;
+    }
+
+    input, select, button {
+      margin: 5px;
+      padding: 10px;
+      border: 1px solid #bdc3c7;
+      border-radius: 6px;
+      font-size: 15px;
+    }
+
+    button {
+      background-color: #5dade2;
+      color: white;
+      font-weight: bold;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #2e86c1;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 15px;
+      background-color: #fdfefe;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    th, td {
+      border: 1px solid #dcdde1;
+      padding: 12px;
+      text-align: center;
+    }
+
+    th {
+      background-color: #d6eaf8;
+    }
+
+    .subject-section {
+      margin-top: 30px;
+      padding: 20px;
+      border-radius: 10px;
+      background-color: #ffffff;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    }
+
+    #fileInput {
+      display: inline-block;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h2>Subject Result Entry</h2>
+
+  <label>Subject Code: <input type="text" id="subjectCode" placeholder="e.g. CSIT121"></label><br>
+  <label>Type:
+    <select id="type">
+      <option value="Quiz">Quiz</option>
+      <option value="Assignment">Assignment</option>
+      <option value="Project">Project</option>
+    </select>
+  </label>
+  <label>Number: <input type="number" id="number" min="1"></label>
+  <label>Mark Obtained: <input type="number" id="obtained" min="0"></label>
+  <label>Total Mark: <input type="number" id="total" min="1"></label>
+  <button onclick="addEntry()">Add</button>
+  <button onclick="saveToFile()">Save as TXT</button>
+  <input type="file" id="fileInput" accept=".txt" onchange="loadFromFile(event)">
+
+  <div id="subjectSections"></div>
+
+<script>
+  let subjects = {};
+
+  function addEntry() {
+    const subject = document.getElementById('subjectCode').value.trim();
+    const type = document.getElementById('type').value;
+    const number = parseInt(document.getElementById('number').value);
+    const obtained = parseFloat(document.getElementById('obtained').value);
+    const total = parseFloat(document.getElementById('total').value);
+
+    if (!subject || isNaN(number) || isNaN(obtained) || isNaN(total) || total <= 0) {
+      alert("Please fill in all fields with valid values.");
+      return;
+    }
+
+    const mark = (obtained / total) * 100;
+
+    if (!subjects[subject]) {
+      subjects[subject] = [];
+    }
+
+    subjects[subject].push({ type, number, obtained, total, mark });
+    renderSubjectSection(subject);
+  }
+
+  function renderSubjectSection(subject) {
+    const container = document.getElementById("subjectSections");
+    let section = document.getElementById("section-" + subject);
+
+    if (section) section.remove();
+
+    section = document.createElement("div");
+    section.className = "subject-section";
+    section.id = "section-" + subject;
+    section.innerHTML = `<h3>Subject: ${subject}</h3>
+      <table id="table-${subject}">
+        <tr>
+          <th>Type</th>
+          <th>Number</th>
+          <th>Mark Obtained</th>
+          <th>Total Mark</th>
+          <th>Mark (%)</th>
+        </tr>
+      </table>
+      <p><strong>Average Scores</strong></p>
+      <p>Quiz: <span id="avgQuiz-${subject}">N/A</span>%</p>
+      <p>Assignment: <span id="avgAssignment-${subject}">N/A</span>%</p>
+      <p>Project: <span id="avgProject-${subject}">N/A</span>%</p>`;
+    container.appendChild(section);
+
+    const table = document.getElementById("table-" + subject);
+    for (let entry of subjects[subject]) {
+      const row = table.insertRow();
+      row.innerHTML = `<td>${entry.type}</td><td>${entry.number}</td><td>${entry.obtained}</td><td>${entry.total}</td><td>${entry.mark.toFixed(2)}</td>`;
+    }
+
+    updateAverages(subject);
+  }
+
+  function updateAverages(subject) {
+    const entries = subjects[subject];
+    const grouped = { Quiz: [], Assignment: [], Project: [] };
+
+    for (let entry of entries) {
+      grouped[entry.type].push(entry.mark);
+    }
+
+    for (let type of ["Quiz", "Assignment", "Project"]) {
+      const avg = grouped[type].length
+        ? (grouped[type].reduce((a, b) => a + b, 0) / grouped[type].length).toFixed(2)
+        : 'N/A';
+      document.getElementById("avg" + type + "-" + subject).textContent = avg;
+    }
+  }
+
+  function saveToFile() {
+    let content = "Subject Result Summary\n\n";
+    for (let subject in subjects) {
+      content += `Subject: ${subject}\n`;
+      content += `Type\tNumber\tObtained\tTotal\tPercentage\n`;
+      for (let entry of subjects[subject]) {
+        content += `${entry.type}\t${entry.number}\t${entry.obtained}\t${entry.total}\t${entry.mark.toFixed(2)}%\n`;
+      }
+      content += `\n`;
+    }
+
+    const blob = new Blob([content], { type: "text/plain" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "subject_results.txt";
+    link.click();
+  }
+
+  function loadFromFile(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const lines = e.target.result.split("\n");
+      let currentSubject = "";
+      subjects = {}; // Reset subjects
+
+      for (let line of lines) {
+        line = line.trim();
+        if (line.startsWith("Subject:")) {
+          currentSubject = line.split("Subject:")[1].trim();
+          if (!subjects[currentSubject]) {
+            subjects[currentSubject] = [];
+          }
+        } else if (line && !line.startsWith("Type") && currentSubject) {
+          const parts = line.split("\t");
+          if (parts.length >= 5) {
+            const [type, numberStr, obtainedStr, totalStr, percentStr] = parts;
+            const number = parseInt(numberStr);
+            const obtained = parseFloat(obtainedStr);
+            const total = parseFloat(totalStr);
+            const mark = parseFloat(percentStr.replace("%", ""));
+            subjects[currentSubject].push({ type, number, obtained, total, mark });
+          }
+        }
+      }
+
+      document.getElementById("subjectSections").innerHTML = "";
+      for (let subject in subjects) {
+        renderSubjectSection(subject);
+      }
+    };
+    reader.readAsText(file);
+  }
+</script>
+</body>
+</html>
