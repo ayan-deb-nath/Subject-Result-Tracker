@@ -66,24 +66,46 @@
   </style>
 </head>
 <body>
-  <h2>Subject Result Entry</h2>
+  <h2 align = 'center'>Subject Result Entry</h2>
 
-  <label>Subject Code: <input type="text" id="subjectCode" placeholder="e.g. CSIT121"></label><br>
-  <label>Type:
-    <select id="type">
-      <option value="Quiz">Quiz</option>
-      <option value="Assignment">Assignment</option>
-      <option value="Project">Project</option>
-    </select>
-  </label>
-  <label>Number: <input type="number" id="number" min="1"></label>
-  <label>Mark Obtained: <input type="number" id="obtained" min="0"></label>
-  <label>Total Mark: <input type="number" id="total" min="1"></label>
-  <button onclick="addEntry()">Add</button>
-  <button onclick="saveToFile()">Save as TXT</button>
-  <input type="file" id="fileInput" accept=".txt" onchange="loadFromFile(event)">
+<table>
+  <tr>
+    <td><label for="subjectCode">Subject Code:</label></td>
+    <td><input type="text" id="subjectCode" placeholder="e.g. CSIT121"></td>
+  </tr>
+  <tr>
+    <td><label for="type">Type:</label></td>
+    <td>
+      <select id="type">
+        <option value="Quiz">Quiz</option>
+        <option value="Assignment">Assignment</option>
+        <option value="Project">Project</option>
+      </select>
+    </td>
+  </tr>
+  <tr>
+    <td><label for="number">Number:</label></td>
+    <td><input type="number" id="number" min="1"></td>
+  </tr>
+  <tr>
+    <td><label for="obtained">Mark Obtained:</label></td>
+    <td><input type="number" id="obtained" min="0"></td>
+  </tr>
+  <tr>
+    <td><label for="total">Total Mark:</label></td>
+    <td><input type="number" id="total" min="1"></td>
+  </tr>
+  <tr>
+    <td colspan="2" style="text-align: center;">
+      <button onclick="addEntry()">Add</button>
+      <button onclick="saveToFile()">Save as TXT</button>
+      <input type="file" id="fileInput" accept=".txt" onchange="loadFromFile(event)">
+    </td>
+  </tr>
+</table>
 
-  <div id="subjectSections"></div>
+<div id="subjectSections"></div>
+
 
 <script>
   let subjects = {};
@@ -132,7 +154,9 @@
       <p><strong>Average Scores</strong></p>
       <p>Quiz: <span id="avgQuiz-${subject}">N/A</span>%</p>
       <p>Assignment: <span id="avgAssignment-${subject}">N/A</span>%</p>
-      <p>Project: <span id="avgProject-${subject}">N/A</span>%</p>`;
+      <p>Project: <span id="avgProject-${subject}">N/A</span>%</p>
+      <p><strong>Total Average: <span id="avgTotal-${subject}">N/A</span>%</strong></p>`;
+
     container.appendChild(section);
 
     const table = document.getElementById("table-" + subject);
@@ -158,6 +182,14 @@
         : 'N/A';
       document.getElementById("avg" + type + "-" + subject).textContent = avg;
     }
+
+        // Calculate overall total average
+    const allMarks = entries.map(e => e.mark);
+    const totalAvg = allMarks.length
+      ? (allMarks.reduce((a, b) => a + b, 0) / allMarks.length).toFixed(2)
+      : 'N/A';
+    document.getElementById("avgTotal-" + subject).textContent = totalAvg;
+
   }
 
   function saveToFile() {
